@@ -1,4 +1,4 @@
-FROM ghcr.io/steamdeckhomebrew/holo-toolchain-rust@sha256:d071cc098dd45b7ab3564ab91b13e809f7020bd6bf8e9166cfaef55401ccd776
+FROM ghcr.io/steamdeckhomebrew/holo-toolchain-rust:latest
 
 RUN pacman -S --noconfirm cmake make clang git
 
