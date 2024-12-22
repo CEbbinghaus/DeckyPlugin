@@ -9,6 +9,8 @@ mod log;
 mod sdcard;
 mod steam;
 mod watch;
+mod ws;
+
 use crate::cfg::CONFIG;
 use crate::ds::Store;
 use crate::env::*;

@@ -1,9 +1,19 @@
 use crate::{
-	cfg::CONFIG, ds::Store, dto::{CardEvent, Game, MicroSDCard}, env::PACKAGE_VERSION, err::Error, event::Event, sdcard::{get_card_cid, is_card_inserted}
+	cfg::CONFIG,
+	ds::Store,
+	dto::{CardEvent, Game, MicroSDCard},
+	env::PACKAGE_VERSION,
+	err::Error,
+	event::Event,
+	sdcard::{get_card_cid, is_card_inserted},
+	ws::ws,
 };
 use actix_web::{
-	delete, get, http::StatusCode, post, web::{self, Bytes}, Either, HttpResponse, HttpResponseBuilder, Responder,
-	Result,
+	delete, get,
+	http::StatusCode,
+	post,
+	web::{self, Bytes},
+	Either, HttpResponse, HttpResponseBuilder, Responder, Result,
 };
 use futures::StreamExt;
 use serde::Deserialize;
@@ -14,6 +24,7 @@ use tracing::{instrument, trace};
 
 pub(crate) fn config(cfg: &mut web::ServiceConfig) {
 	cfg //
+		.service(ws)
 		.service(health)
 		.service(version)
 		.service(listen)
@@ -62,7 +73,7 @@ pub(crate) async fn health() -> impl Responder {
 #[instrument]
 pub(crate) async fn listen(sender: web::Data<Sender<CardEvent>>) -> Result<HttpResponse> {
 	trace!("HTTP GET /listen");
-	
+
 	let event_stream = BroadcastStream::new(sender.subscribe()).map(|res| match res {
 		Err(_) => Err(Error::from_str("Subscriber Closed")),
 		Ok(value) => Ok(Event::new(value).into()),
@@ -83,10 +94,14 @@ pub(crate) async fn get_setting_by_name(name: web::Path<String>) -> Result<impl 
 
 #[post("/setting/{name}")]
 #[instrument]
-pub(crate) async fn set_setting_by_name(body: Bytes, name: web::Path<String>) -> Result<impl Responder> {
+pub(crate) async fn set_setting_by_name(
+	body: Bytes,
+	name: web::Path<String>,
+) -> Result<impl Responder> {
 	trace!("HTTP POST /setting/{name}");
 
-    let value = String::from_utf8(body.to_vec()).map_err(|_| Error::from_str("Unable to decode body as utf8"))?;
+	let value = String::from_utf8(body.to_vec())
+		.map_err(|_| Error::from_str("Unable to decode body as utf8"))?;
 	CONFIG.write().await.set_property(&name, &value)?;
 	Ok(HttpResponse::Ok())
 }
